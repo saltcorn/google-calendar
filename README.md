@@ -10,38 +10,88 @@ further configuration.
 
 ## Setup
 
-### 1. Create an OAuth client in Google Cloud
+The plugin's configuration page shows the exact redirect URI to register, and
+updates it as you type the base URL — so open it first and work from there.
 
-1. In the [Google Cloud console](https://console.cloud.google.com/), pick or
-   create a project and enable the **Google Calendar API**.
+### 1. Open the plugin configuration and fill in the base URL
+
+Enter this Saltcorn instance's public URL. The page then shows the redirect URI
+you need in the next step, in the shape:
+
+```
+<your base URL>/google-calendar/oauth2/callback
+```
+
+Until the base URL is filled in, the page shows a placeholder host and says so.
+Only the value shown once your base URL is in place is the one to register.
+
+`http://localhost:3000` is fine for development. Localhost is the one exception
+to Google's HTTPS requirement for redirect URIs.
+
+### 2. Set up the Google Cloud project
+
+In the [Google Cloud console](https://console.cloud.google.com/):
+
+1. **Enable the Google Calendar API** for your project
+   ([direct link](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com)).
+   Nothing else works until this is on — an otherwise correct setup fails with
+   a 403 naming the API.
 2. Under **APIs & Services → Credentials**, create an **OAuth 2.0 Client ID**
    of type **Web application**.
-3. Leave the redirect URI blank for now.
+3. Paste the redirect URI from step 1 under **Authorised redirect URIs**. It
+   must match character for character, including scheme and port.
+4. Under **Audience**, add your own Google account as a **test user** — see
+   *Publishing status* below.
 
-### 2. Configure the plugin
+### 3. Finish the plugin configuration
 
-Install the module, then open its configuration page. Fill in the base URL,
-client ID and client secret. The page shows the exact redirect URI to register:
+Paste the client ID and secret, then continue to the **Connect** step and press
+**Connect Google account**.
 
-```
-https://your-saltcorn-host/google-calendar/oauth2/callback
-```
-
-Paste that into the OAuth client's **Authorised redirect URIs** in Google
-Cloud. It must match character for character, including scheme and port.
-
-Two other settings:
+Two other settings on the first step:
 
 - **Read only** requests the `calendar.readonly` scope instead of `calendar`.
   Provider tables and actions can then read events but not change them.
 - **Notify attendees by default** controls whether Google emails attendees
   about writes made through a provider table. The actions ask per action.
 
-### 3. Connect the Google account
+### Publishing status
 
-On the **Connect** step, press **Connect Google account**. You are sent to
-Google's consent screen and back. One Google account serves the whole Saltcorn
-instance — see *Token scope* below.
+A Google Cloud project with an **external** user type and a publishing status
+of **Testing** issues refresh tokens that expire after **7 days**. This plugin
+stores one long-lived refresh token, so a Testing-mode connection stops working
+after a week and every provider table starts erroring until you reconnect.
+
+| Your account | Do this | Result |
+| --- | --- | --- |
+| Google Workspace | Set the user type to **Internal** | No 7-day expiry, no verification needed |
+| Personal Gmail | **Publish app** (In production) | Long-lived tokens; you click through an "unverified app" warning |
+| Either, short term | Stay in **Testing** | Works, but reconnect weekly |
+
+Verification is only needed to remove the warning screen and to go beyond 100
+users. It is not needed to use this for yourself.
+
+## Troubleshooting
+
+**`Error 400: redirect_uri_mismatch`** — the URI registered in Google Cloud is
+not byte-identical to the one the plugin sends. Copy it from the plugin
+configuration page rather than typing it. `http://localhost` and
+`http://127.0.0.1` are different URIs to Google.
+
+**`Error 403: access_denied`, "can only be accessed by developer-approved
+testers"** — the consent screen is in Testing and your account is not on the
+test-user list. Add it under **Audience → Test users**.
+
+**A 403 naming the Calendar API** — the API is not enabled for the project.
+
+**`Bad Request (HTTP 400)` on a write** — Google rejected the event body. The
+error now quotes the offending property. Most often it is an all-day event
+whose end does not fall after its start, or a constrained property
+(`status`, `transparency`, `visibility`, `color_id`) set to something other
+than one of its permitted values.
+
+**Everything stops working after about a week** — the 7-day refresh token
+expiry above.
 
 ## Creating a table
 
@@ -164,9 +214,9 @@ a page rendering several views does not fire several refresh grants at once.
 npm test
 ```
 
-45 tests covering the where-to-query translation, the local filter and sort,
-the row mapping, paging and early stop, and the retry and token-refresh
-behaviour. Nothing touches the network: `fetch` is injected, and the token
+73 tests covering the where-to-query translation, the local filter and sort,
+the row mapping, paging and early stop, the retry and token-refresh behaviour,
+and the configuration pages. Nothing touches the network: `fetch` is injected, and the token
 source is substituted.
 
 The saltcorn packages are resolved through symlinks in `node_modules`:
@@ -189,6 +239,10 @@ ln -sfn /path/to/saltcorn/packages/saltcorn-markup node_modules/@saltcorn/markup
 | `lib/provider.js` | the table provider |
 | `lib/actions.js` | the five actions |
 | `lib/routes.js` | the OAuth redirect and callback routes |
+
+`lib/config.js` holds `CALLBACK_PATH`, the single place the callback path is
+spelled. The route and the setup instructions both derive from it, and a test
+asserts they agree — a mismatch between them *is* `redirect_uri_mismatch`.
 
 `lib/oauth.js`, `lib/api.js` and the pushdown approach in `lib/query.js` are
 written to be lifted into a shared integrations package once a second Google

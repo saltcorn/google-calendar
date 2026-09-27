@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Google Calendar table provider and actions for Saltcorn",
   "main": "index.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
   "dependencies": {
     "@saltcorn/data": "1.6.2",
     "@saltcorn/markup": "1.6.2"
