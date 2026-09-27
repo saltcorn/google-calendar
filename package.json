@@ -1,0 +1,40 @@
+{
+  "name": "@saltcorn/google-calendar",
+  "version": "0.1.0",
+  "description": "Google Calendar table provider and actions for Saltcorn",
+  "main": "index.js",
+  "dependencies": {
+    "@saltcorn/data": "1.6.2",
+    "@saltcorn/markup": "1.6.2"
+  },
+  "author": "RUTAYISIRE MANZI Gerard Valentin",
+  "license": "MIT",
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "ecmaVersion": 2022
+    },
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+      "no-unused-vars": "off",
+      "no-case-declarations": "off",
+      "no-empty": "warn",
+      "no-fallthrough": "warn"
+    }
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "saltcorn",
+    "saltcorn-plugin",
+    "google-calendar",
+    "table-provider"
+  ]
+}
